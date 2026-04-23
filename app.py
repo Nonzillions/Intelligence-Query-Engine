@@ -203,13 +203,19 @@ def list_profiles():
     # Get profiles from database
     profiles, total = database.get_all_profiles(filters, sort_by, order, page, limit)
     
-    # Return with flat pagination (grader expects this format)
+    # Calculate total pages
+    total_pages = (total + limit - 1) // limit if total > 0 else 1
+    
+    # Return with pagination envelope
     return jsonify({
         "status": "success",
-        "page": page,
-        "limit": limit,
-        "total": total,
-        "data": profiles
+        "data": profiles,
+        "pagination": {
+            "current_page": page,
+            "per_page": limit,
+            "total_records": total,
+            "total_pages": total_pages
+        }
     }), 200
 
 # NATURAL LANGUAGE SEARCH
@@ -249,14 +255,20 @@ def search_profiles():
     # Get profiles with parsed filters
     profiles, total = database.get_all_profiles(filters, 'created_at', 'asc', page, limit)
     
+    # Calculate total pages
+    total_pages = (total + limit - 1) // limit if total > 0 else 1
+    
     return jsonify({
         "status": "success",
         "query": query,
         "interpreted_as": filters,
-        "page": page,
-        "limit": limit,
-        "total": total,
-        "data": profiles
+        "data": profiles,
+        "pagination": {
+            "current_page": page,
+            "per_page": limit,
+            "total_records": total,
+            "total_pages": total_pages
+        }
     }), 200
 
 # DELETE a profile
