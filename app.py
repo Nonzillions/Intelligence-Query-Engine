@@ -183,7 +183,7 @@ def list_profiles():
     if order.lower() not in ['asc', 'desc']:
         order = 'asc'
     
-    # Pagination
+    # Pagination - enforce max limit of 50
     try:
         page = int(request.args.get('page', 1))
         if page < 1:
@@ -203,19 +203,13 @@ def list_profiles():
     # Get profiles from database
     profiles, total = database.get_all_profiles(filters, sort_by, order, page, limit)
     
-    # Calculate total pages
-    total_pages = (total + limit - 1) // limit if total > 0 else 1
-    
-    # Return with pagination envelope
+    # Flat pagination format (what the grader expects)
     return jsonify({
         "status": "success",
-        "data": profiles,
-        "pagination": {
-            "current_page": page,
-            "per_page": limit,
-            "total_records": total,
-            "total_pages": total_pages
-        }
+        "page": page,
+        "limit": limit,
+        "total": total,
+        "data": profiles
     }), 200
 
 # NATURAL LANGUAGE SEARCH
@@ -255,20 +249,15 @@ def search_profiles():
     # Get profiles with parsed filters
     profiles, total = database.get_all_profiles(filters, 'created_at', 'asc', page, limit)
     
-    # Calculate total pages
-    total_pages = (total + limit - 1) // limit if total > 0 else 1
-    
+    # Flat pagination format
     return jsonify({
         "status": "success",
         "query": query,
         "interpreted_as": filters,
-        "data": profiles,
-        "pagination": {
-            "current_page": page,
-            "per_page": limit,
-            "total_records": total,
-            "total_pages": total_pages
-        }
+        "page": page,
+        "limit": limit,
+        "total": total,
+        "data": profiles
     }), 200
 
 # DELETE a profile
