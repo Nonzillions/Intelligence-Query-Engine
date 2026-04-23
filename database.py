@@ -125,6 +125,43 @@ def save_profile(profile_data):
     conn.close()
     return profile_data, False
 
+def seed_database_from_csv(csv_data):
+    import csv
+    import io
+    
+    conn = get_db()
+    cursor = conn.cursor()
+    created_count = 0
+    
+    csv_file = io.StringIO(csv_data)
+    reader = csv.DictReader(csv_file)
+    
+    for row in reader:
+        cursor.execute("SELECT id FROM profiles WHERE name = ?", (row['name'],))
+        if not cursor.fetchone():
+            cursor.execute('''
+                INSERT INTO profiles (
+                    id, name, gender, gender_probability, age, age_group,
+                    country_id, country_name, country_probability, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (
+                generate_uuid_v7(),
+                row['name'],
+                row['gender'],
+                float(row['gender_probability']),
+                int(row['age']),
+                row['age_group'],
+                row['country_id'],
+                row['country_name'],
+                float(row['country_probability']),
+                datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z')
+            ))
+            created_count += 1
+    
+    conn.commit()
+    conn.close()
+    return created_count
+
 def clear_all_profiles():
     conn = get_db()
     cursor = conn.cursor()
