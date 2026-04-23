@@ -1,4 +1,4 @@
-# Intelligence Query Engine - HNG Internship Stage 2
+# Intelligence Query Engine - HNG Stage 2
 
 ## Live API
 https://nonzillions.pythonanywhere.com
@@ -11,4 +11,4 @@ https://nonzillions.pythonanywhere.com
 - DELETE /api/profiles/{id} - Delete profile
 
 ## Author
-Nonzillions
+Nonzillions - HNG Internship

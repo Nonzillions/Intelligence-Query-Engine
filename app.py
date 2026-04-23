@@ -47,8 +47,7 @@ def home():
             "GET /api/profiles/search": "Natural language search",
             "GET /api/profiles/{id}": "Get profile by ID",
             "POST /api/profiles": "Create a profile",
-            "DELETE /api/profiles/{id}": "Delete a profile",
-            "POST /api/profiles/seed": "Seed database with sample data"
+            "DELETE /api/profiles/{id}": "Delete a profile"
         }
     })
 
@@ -135,16 +134,13 @@ def list_profiles():
     if request.method == 'OPTIONS':
         return '', 200
     
-    # Get filter parameters
     filters = {}
     
     # Simple filters
     if request.args.get('gender'):
         filters['gender'] = request.args.get('gender').lower()
-    
     if request.args.get('age_group'):
         filters['age_group'] = request.args.get('age_group').lower()
-    
     if request.args.get('country_id'):
         filters['country_id'] = request.args.get('country_id').upper()
     
@@ -154,19 +150,16 @@ def list_profiles():
             filters['min_age'] = int(request.args.get('min_age'))
         except ValueError:
             return jsonify({"status": "error", "message": "Invalid query parameters"}), 400
-    
     if request.args.get('max_age'):
         try:
             filters['max_age'] = int(request.args.get('max_age'))
         except ValueError:
             return jsonify({"status": "error", "message": "Invalid query parameters"}), 400
-    
     if request.args.get('min_gender_probability'):
         try:
             filters['min_gender_probability'] = float(request.args.get('min_gender_probability'))
         except ValueError:
             return jsonify({"status": "error", "message": "Invalid query parameters"}), 400
-    
     if request.args.get('min_country_probability'):
         try:
             filters['min_country_probability'] = float(request.args.get('min_country_probability'))
@@ -175,35 +168,27 @@ def list_profiles():
     
     # Sorting
     sort_by = request.args.get('sort_by', 'created_at')
-    valid_sort_fields = ['age', 'created_at', 'gender_probability']
-    if sort_by not in valid_sort_fields:
+    if sort_by not in ['age', 'created_at', 'gender_probability']:
         sort_by = 'created_at'
-    
     order = request.args.get('order', 'asc')
     if order.lower() not in ['asc', 'desc']:
         order = 'asc'
     
-    # Pagination - enforce max limit of 50
+    # Pagination
     try:
         page = int(request.args.get('page', 1))
-        if page < 1:
-            page = 1
+        page = max(page, 1)
     except ValueError:
         page = 1
-    
     try:
         limit = int(request.args.get('limit', 10))
-        if limit < 1:
-            limit = 10
-        if limit > 50:
-            limit = 50
+        limit = max(1, min(limit, 50))
     except ValueError:
         limit = 10
     
-    # Get profiles from database
+    # Get profiles
     profiles, total = database.get_all_profiles(filters, sort_by, order, page, limit)
     
-    # Flat pagination format (what the grader expects)
     return jsonify({
         "status": "success",
         "page": page,
@@ -219,37 +204,27 @@ def search_profiles():
         return '', 200
     
     query = request.args.get('q')
-    
     if not query:
         return jsonify({"status": "error", "message": "Missing search query"}), 400
     
-    # Parse the natural language query
     filters = parser.parse_natural_query(query)
-    
     if filters is None:
         return jsonify({"status": "error", "message": "Unable to interpret query"}), 400
     
-    # Get pagination parameters
+    # Pagination
     try:
         page = int(request.args.get('page', 1))
-        if page < 1:
-            page = 1
+        page = max(page, 1)
     except ValueError:
         page = 1
-    
     try:
         limit = int(request.args.get('limit', 10))
-        if limit < 1:
-            limit = 10
-        if limit > 50:
-            limit = 50
+        limit = max(1, min(limit, 50))
     except ValueError:
         limit = 10
     
-    # Get profiles with parsed filters
     profiles, total = database.get_all_profiles(filters, 'created_at', 'asc', page, limit)
     
-    # Flat pagination format
     return jsonify({
         "status": "success",
         "query": query,
@@ -269,34 +244,8 @@ def delete_profile(profile_id):
     deleted = database.delete_profile(profile_id)
     if not deleted:
         return jsonify({"status": "error", "message": "Profile not found"}), 404
-    
     return '', 204
-
-# SEED DATABASE (for testing with 2026 profiles)
-@app.route('/api/profiles/seed', methods=['POST', 'OPTIONS'])
-def seed_database():
-    if request.method == 'OPTIONS':
-        return '', 200
-    
-    sample_data = """name,gender,gender_probability,age,age_group,country_id,country_name,country_probability
-John Doe,male,0.95,35,adult,US,United States,0.85
-Jane Smith,female,0.92,28,adult,GB,United Kingdom,0.78
-"""
-    
-    count = database.seed_database_from_csv(sample_data)
-    
-    return jsonify({
-        "status": "success",
-        "message": f"Seeded {count} new profiles",
-        "count": count
-    }), 200
 
 # Run the server
 if __name__ == '__main__':
-    print("🚀 Starting Intelligence Query Engine...")
-    print("📍 Local URL: http://localhost:8000")
-    print("\n📋 Example queries:")
-    print("  GET /api/profiles?gender=male&country_id=NG&min_age=25")
-    print("  GET /api/profiles?sort_by=age&order=desc&page=1&limit=10")
-    print("  GET /api/profiles/search?q=young males from nigeria")
     app.run(host='0.0.0.0', port=8000, debug=True)
