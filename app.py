@@ -5,6 +5,10 @@ from datetime import datetime, timezone
 import database
 import parser
 
+# Helper: standardized error response
+def error(message, code):
+    return jsonify({"status": "error", "message": message}), code
+
 # Create database tables on startup
 database.create_tables()
 
